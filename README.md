@@ -1,4 +1,4 @@
-# MA691_COBRA_4
+# MA691-COBRA-4
 Group Name - Cobra 4
 
 Members - Kartikay Goel, Samiksha Sachdeva, A B Satyraprakash, Jatin Dhingra, Himanshu Yadav
