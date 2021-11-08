@@ -167,10 +167,7 @@ def predict(feature_vector):
     survived = int(cobra.predict(feature_vector))
     survived_proba = cobra.predict_proba(feature_vector)
 
-    if(survived):
-        return ['Survived', survived_proba[0][survived]]
-    else:
-        return ['Not Survived', survived_proba[0][survived]]
+    return [survived, survived_proba[0][survived]]
 
 
 def convert(prediction_list):

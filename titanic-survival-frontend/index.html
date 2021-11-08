@@ -29,15 +29,57 @@
       integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
       crossorigin="anonymous"
     ></script>
+    <!-- Axios -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js"
+      integrity="sha512-u9akINsQsAkG9xjc1cnGF4zw5TFDwkxuc9vUp5dltDWYCSmyd0meygbvgXrlc/z7/o4a19Fb5V0OUE58J7dcyw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
   </head>
+
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <img src="python.png" alt="" width="40" height="40" />
+        <span class="fw-bold px-2">PyCOBRA</span>
+      </a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNavAltMarkup"
+        aria-controls="navbarNavAltMarkup"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+          <a class="nav-link p-4" href="https://gist.github.com/Imperial-lord/757b1d870f00253afed056d7324cb1d9"
+            >Analysis on Google Colab
+          </a>
+          <a class="nav-link p-4" href="https://pacific-dawn-32033.herokuapp.com/docs">API Documentation</a>
+          <a class="nav-link p-4" href="https://github.com/krtky123/MA691-COBRA-4">GitHub Repository</a>
+        </div>
+      </div>
+    </div>
+  </nav>
 
   <body>
     <div class="container py-4">
-      <div class="text-center fs-3">COBRA in Survival Prediction (Titanic dataset ) <i class="bi bi-graph-up"></i></div>
+      <div class="text-center fs-3">
+        Survival Prediction with Titanic dataset using COBRA <i class="bi bi-graph-up"></i>
+      </div>
+      <div class="text-secondary pt-2">
+        The name parameter does not have any significance, other than for the title parameter which is a feature in use.
+        All other fields together form the feature vector for prediction using COBRA.
+      </div>
     </div>
 
     <div class="container">
-      <form action="" method="post" id="cobra-form">
+      <form id="cobra-form">
         <div class="row">
           <div class="col-sm-6 col-xs-12 mb-3">
             <label for="title-input" class="form-label">Title</label>
@@ -47,7 +89,7 @@
               <option value="3">Mrs</option>
               <option value="4">Master</option>
               <option value="5">Royal</option>
-              <option value="6">Rare</option>
+              <option value="6">Other (Capt., Dr., etc.)</option>
             </select>
           </div>
           <div class="col-sm-6 col-xs-12 mb-3">
@@ -87,15 +129,12 @@
           </div>
           <div class="col-sm-6 col-xs-12 mb-3">
             <label for="fare-input" class="form-label">Fare</label>
-            <input
-              type="number"
-              name="Fare"
-              id="fare-input"
-              class="form-control"
-              placeholder="Enter fare"
-              step="0.01"
-              required
-            />
+            <select class="form-select" name="FareBand" id="fare-input" required>
+              <option value="1">Low</option>
+              <option value="2">Average</option>
+              <option value="3">Medium</option>
+              <option value="4">High</option>
+            </select>
           </div>
         </div>
         <div class="row">
@@ -134,9 +173,16 @@
             </select>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary">Predict Survival</button>
+        <button type="submit" class="btn btn-primary my-2">Predict Survival</button>
       </form>
     </div>
+
+    <div class="container py-4">
+      <div class="alert visually-hidden" id="result" role="alert">
+        <div class="text fw-bold" id="message"></div>
+      </div>
+    </div>
   </body>
+
   <script src="script.js"></script>
 </html>
