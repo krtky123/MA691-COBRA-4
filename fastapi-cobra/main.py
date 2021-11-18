@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import gunicorn
 from pydantic import BaseModel
-from model import predict, convert
+from model import predict, predict_helper
 import numpy as np
 
 app = FastAPI()
@@ -22,31 +22,39 @@ app.add_middleware(
 
 
 class request_body(BaseModel):
-    Pclass: int
-    Sex: int
-    SibSp: int
-    Parch: int
-    Embarked: int
-    AgeGroup: int
-    Title: int
-    FareBand: int
+    employ: str
+    age: int
+    amount: int
+    duration: int
+    checkingstatus: str
+    history: str
+    purpose: str
+    savings: str
+    status: str
 
 
-@app.get("/hello")
+@app.get("/")
 def welcome():
-    return {"ping": "Hello COBRA"}
+    return {"ping": "Hello COBRA. Go to /docs to see the Swagger documentation"}
 
 
 @app.post("/predict", status_code=200)
 def get_prediction(data: request_body):
     print(data)
 
-    feature_vector = np.array([[data.Pclass, data.Sex, data.SibSp, data.Parch,
-                              data.Embarked, data.AgeGroup, data.Title, data.FareBand]])
-    prediction_list = predict(feature_vector)
+    prediction_json = predict_helper(
+        data.employ,
+        data.age,
+        data.amount,
+        data.duration,
+        data.checkingstatus,
+        data.history,
+        data.purpose,
+        data.savings,
+        data.status,
+    )
 
-    if not prediction_list:
+    if not prediction_json:
         raise HTTPException(status_code=400, detail="Model not found.")
 
-    response_object = convert(prediction_list)
-    return response_object
+    return prediction_json

@@ -3,11 +3,11 @@ from pathlib import Path
 import joblib
 
 # data analysis libraries
-from sklearn.metrics import accuracy_score
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import numpy as np
 import pandas as pd
+import pickle
 
 # cobra library
 import classifiercobra
@@ -18,159 +18,341 @@ import seaborn as sns
 
 # ignore warnings
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 # ---------------------------------------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent
 
-titanic_train_data = BASE_DIR.joinpath('data/train.csv')
-titanic_test_data = BASE_DIR.joinpath('data/test.csv')
+german_credit_train_data = BASE_DIR.joinpath("data/train.csv")
 
 
 def train():
     # cleaning of tha data before training -----------------------------------------------------------------
 
-    # import train and test CSV files
-    train = pd.read_csv(titanic_train_data)
-    test = pd.read_csv(titanic_test_data)
+    # Reading the data into python
+    df = pd.read_csv(german_credit_train_data)
+    df = df.drop_duplicates()
 
-    # drop Cabin column because it has much less data
-    train = train.drop('Cabin', axis=1)
-    test = test.drop('Cabin', axis=1)
+    SelectedColumns = [
+        "checkingstatus",
+        "history",
+        "purpose",
+        "savings",
+        "employ",
+        "status",
+        "others",
+        "property",
+        "otherplans",
+        "housing",
+        "foreign",
+        "age",
+        "amount",
+        "duration",
+    ]
 
-    # we can also drop the Ticket feature since it's unlikely to yield any useful information
-    train = train.drop(['Ticket'], axis=1)
-    test = test.drop(['Ticket'], axis=1)
+    # Selecting final columns
+    DataForML = df[SelectedColumns]
 
-    # sort the ages into logical categories
-    train["Age"] = train["Age"].fillna(-0.5)
-    test["Age"] = test["Age"].fillna(-0.5)
-    bins = [-1, 0, 5, 12, 18, 24, 35, 60, np.inf]
-    labels = ['Unknown', 'Baby', 'Child', 'Teenager',
-              'Student', 'Young Adult', 'Adult', 'Senior']
-    train['AgeGroup'] = pd.cut(train["Age"], bins, labels=labels)
-    test['AgeGroup'] = pd.cut(test["Age"], bins, labels=labels)
+    # Saving this final data for reference during deployment
+    DataForML.to_pickle("mldata.pkl")
 
-    # replacing the missing values in the Embarked feature with S - since it has the maximum count
-    train = train.fillna({"Embarked": "S"})
+    """# Data Pre-processing for Machine Learning
 
-    # create a combined group of both datasets
-    combine = [train, test]
+    ##### 1. Converting Ordinal variables to numeric using business mapping
+    """
 
-    # extract a title for each Name in the train and test datasets
-    for dataset in combine:
-        dataset['Title'] = dataset.Name.str.extract(
-            ' ([A-Za-z]+)\.', expand=False)
+    # Treating the Ordinal variable first
+    DataForML["employ"].replace(
+        {"A71": 1, "A72": 2, "A73": 3, "A74": 4, "A75": 5}, inplace=True
+    )
 
-    pd.crosstab(train['Title'], train['Sex'])
+    # Converting the binary nominal variable to numeric using 1/0 mapping
+    # Treating the binary nominal variable
 
-    # replace various titles with more common names
-    for dataset in combine:
-        dataset['Title'] = dataset['Title'].replace(['Lady', 'Capt', 'Col',
-                                                    'Don', 'Dr', 'Major', 'Rev', 'Jonkheer', 'Dona'], 'Rare')
+    DataForML["foreign"].replace({"A201": 1, "A202": 0}, inplace=True)
 
-        dataset['Title'] = dataset['Title'].replace(
-            ['Countess', 'Lady', 'Sir'], 'Royal')
-        dataset['Title'] = dataset['Title'].replace('Mlle', 'Miss')
-        dataset['Title'] = dataset['Title'].replace('Ms', 'Miss')
-        dataset['Title'] = dataset['Title'].replace('Mme', 'Mrs')
+    """##### 2. Converting nominal variables to numeric using get_dummies()"""
 
-    train[['Title', 'Survived']].groupby(['Title'], as_index=False).mean()
+    # Treating all the nominal variables at once using dummy variables
+    DataForML_Numeric = pd.get_dummies(DataForML)
 
-    # map each of the title groups to a numerical value
-    title_mapping = {"Mr": 1, "Miss": 2, "Mrs": 3,
-                     "Master": 4, "Royal": 5, "Rare": 6}
-    for dataset in combine:
-        dataset['Title'] = dataset['Title'].map(title_mapping)
-        dataset['Title'] = dataset['Title'].fillna(0)
+    # Adding Target Variable to the data
+    DataForML_Numeric["GoodCredit"] = df["GoodCredit"]
 
-    # fill missing age with mode age group for each title
-    mr_age = train[train["Title"] == 1]["AgeGroup"].mode()  # Young Adult
-    miss_age = train[train["Title"] == 2]["AgeGroup"].mode()  # Student
-    mrs_age = train[train["Title"] == 3]["AgeGroup"].mode()  # Adult
-    master_age = train[train["Title"] == 4]["AgeGroup"].mode()  # Baby
-    royal_age = train[train["Title"] == 5]["AgeGroup"].mode()  # Adult
-    rare_age = train[train["Title"] == 6]["AgeGroup"].mode()  # Adult
+    # Separate Target Variable and Predictor Variables
+    TargetVariable = "GoodCredit"
+    Predictors = [
+        "employ",
+        "foreign",
+        "age",
+        "amount",
+        "duration",
+        "checkingstatus_A11",
+        "checkingstatus_A12",
+        "checkingstatus_A13",
+        "checkingstatus_A14",
+        "history_A30",
+        "history_A31",
+        "history_A32",
+        "history_A33",
+        "history_A34",
+        "purpose_A40",
+        "purpose_A41",
+        "purpose_A410",
+        "purpose_A42",
+        "purpose_A43",
+        "purpose_A44",
+        "purpose_A45",
+        "purpose_A46",
+        "purpose_A48",
+        "purpose_A49",
+        "savings_A61",
+        "savings_A62",
+        "savings_A63",
+        "savings_A64",
+        "savings_A65",
+        "status_A91",
+        "status_A92",
+        "status_A93",
+        "status_A94",
+        "others_A101",
+        "others_A102",
+        "others_A103",
+        "property_A121",
+        "property_A122",
+        "property_A123",
+        "property_A124",
+        "otherplans_A141",
+        "otherplans_A142",
+        "otherplans_A143",
+        "housing_A151",
+        "housing_A152",
+        "housing_A153",
+    ]
 
-    age_title_mapping = {1: "Young Adult", 2: "Student",
-                         3: "Adult", 4: "Baby", 5: "Adult", 6: "Adult"}
+    X = DataForML_Numeric[Predictors].values
+    y = DataForML_Numeric[TargetVariable].values
 
-    for x in range(len(train["AgeGroup"])):
-        if train["AgeGroup"][x] == "Unknown":
-            train["AgeGroup"][x] = age_title_mapping[train["Title"][x]]
+    # Splitting the data into training and testing set
 
-    for x in range(len(test["AgeGroup"])):
-        if test["AgeGroup"][x] == "Unknown":
-            test["AgeGroup"][x] = age_title_mapping[test["Title"][x]]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=428
+    )
 
-    # map each Age value to a numerical value
-    age_mapping = {'Baby': 1, 'Child': 2, 'Teenager': 3,
-                   'Student': 4, 'Young Adult': 5, 'Adult': 6, 'Senior': 7}
-    train['AgeGroup'] = train['AgeGroup'].map(age_mapping)
-    test['AgeGroup'] = test['AgeGroup'].map(age_mapping)
+    # Normalization of data
+    PredictorScaler = MinMaxScaler()
 
-    # dropping the Age feature for now, might change
-    train = train.drop(['Age'], axis=1)
-    test = test.drop(['Age'], axis=1)
+    # Storing the fit object for later reference
+    PredictorScalerFit = PredictorScaler.fit(X)
 
-    # drop the name feature since it contains no more useful information.
-    train = train.drop(['Name'], axis=1)
-    test = test.drop(['Name'], axis=1)
+    # Generating the standardized values of X
+    X = PredictorScalerFit.transform(X)
 
-    # map each Sex value to a numerical value
-    sex_mapping = {"male": 0, "female": 1}
-    train['Sex'] = train['Sex'].map(sex_mapping)
-    test['Sex'] = test['Sex'].map(sex_mapping)
+    # Split the data into training and testing set
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42
+    )
 
-    # map each Embarked value to a numerical value
-    embarked_mapping = {"S": 1, "C": 2, "Q": 3}
-    train['Embarked'] = train['Embarked'].map(embarked_mapping)
-    test['Embarked'] = test['Embarked'].map(embarked_mapping)
+    # Separate Target Variable and Predictor Variables
+    TargetVariable = "GoodCredit"
 
-    # fill in missing Fare value in test set based on mean fare for that Pclass
-    for x in range(len(test["Fare"])):
-        if pd.isnull(test["Fare"][x]):
-            pclass = test["Pclass"][x]  # Pclass = 3
-            test["Fare"][x] = round(
-                train[train["Pclass"] == pclass]["Fare"].mean(), 4)
+    # Selecting the final set of predictors for the deployment
+    Predictors = [
+        "employ",
+        "age",
+        "amount",
+        "duration",
+        "checkingstatus_A11",
+        "checkingstatus_A12",
+        "checkingstatus_A13",
+        "checkingstatus_A14",
+        "history_A30",
+        "history_A31",
+        "history_A32",
+        "history_A33",
+        "history_A34",
+        "purpose_A40",
+        "purpose_A41",
+        "purpose_A410",
+        "purpose_A42",
+        "purpose_A43",
+        "purpose_A44",
+        "purpose_A45",
+        "purpose_A46",
+        "purpose_A48",
+        "purpose_A49",
+        "savings_A61",
+        "savings_A62",
+        "savings_A63",
+        "savings_A64",
+        "savings_A65",
+        "status_A91",
+        "status_A92",
+        "status_A93",
+        "status_A94",
+    ]
 
-    # map Fare values into groups of numerical values
-    train['FareBand'] = pd.qcut(train['Fare'], 4, labels=[1, 2, 3, 4])
-    test['FareBand'] = pd.qcut(test['Fare'], 4, labels=[1, 2, 3, 4])
+    X = DataForML_Numeric[Predictors].values
+    y = DataForML_Numeric[TargetVariable].values
 
-    # drop Fare values
-    train = train.drop(['Fare'], axis=1)
-    test = test.drop(['Fare'], axis=1)
+    ### Normalization of data ###
+    PredictorScaler = MinMaxScaler()
+    PredictorScalerFit = PredictorScaler.fit(X)
+    X = PredictorScalerFit.transform(X)
 
-    # ------------------------------------------------------------------------------------------------------
+    # Retraining the model using 100% data
+    # Using the COBRA algorithm with advanced set of machine lists.
+    cobra = classifiercobra.ClassifierCobra(machine_list="advanced")
 
-    predictors = train.drop(['Survived', 'PassengerId'], axis=1)
-    target = train["Survived"]
-    x_train, x_val, y_train, y_val = train_test_split(
-        predictors, target, test_size=0.22, random_state=0)
+    # Training the model on 100% Data available
+    cobra_model = cobra.fit(X, y)
+    accuracy_Values = cross_val_score(cobra_model, X, y, cv=10, scoring="f1_weighted")
+    print("\nAccuracy values for 10-fold Cross Validation:\n", accuracy_Values)
+    print("\nFinal Average Accuracy of the model:", round(accuracy_Values.mean(), 4))
 
-    cobra = classifiercobra.ClassifierCobra()
-    cobra.fit(x_train, y_train)
-
+    # Dumping the trained model for future use
     joblib.dump(cobra, Path(BASE_DIR).joinpath("cobra.joblib"))
 
 
-def predict(feature_vector):
+def predict(loan_details):
     model_file = Path(BASE_DIR).joinpath("cobra.joblib")
 
     # the model has not been trained.
     if not model_file.exists():
-        return False
+        train()
+        model_file = Path(BASE_DIR).joinpath("cobra.joblib")
+
+    num_inputs = loan_details.shape[0]
+
+    # Appending the new data with the Training data
+    DataForML = pd.read_pickle("mldata.pkl")
+    loan_details = loan_details.append(DataForML)
+
+    # Treating the Ordinal variable first
+    loan_details["employ"].replace(
+        {"A71": 1, "A72": 2, "A73": 3, "A74": 4, "A75": 5}, inplace=True
+    )
+
+    # Generating dummy variables for rest of the nominal variables
+    loan_details = pd.get_dummies(loan_details)
+
+    # Maintaining the same order of columns as it was during the model training
+    Predictors = [
+        "employ",
+        "age",
+        "amount",
+        "duration",
+        "checkingstatus_A11",
+        "checkingstatus_A12",
+        "checkingstatus_A13",
+        "checkingstatus_A14",
+        "history_A30",
+        "history_A31",
+        "history_A32",
+        "history_A33",
+        "history_A34",
+        "purpose_A40",
+        "purpose_A41",
+        "purpose_A410",
+        "purpose_A42",
+        "purpose_A43",
+        "purpose_A44",
+        "purpose_A45",
+        "purpose_A46",
+        "purpose_A48",
+        "purpose_A49",
+        "savings_A61",
+        "savings_A62",
+        "savings_A63",
+        "savings_A64",
+        "savings_A65",
+        "status_A91",
+        "status_A92",
+        "status_A93",
+        "status_A94",
+    ]
+
+    # Generating the input values to the model
+    X = loan_details[Predictors].values[0:num_inputs]
+
+    # Generating the standardized values of X since it was done while model training also
+    PredictorScaler = MinMaxScaler()
+    PredictorScalerFit = PredictorScaler.fit(X)
+    X = PredictorScalerFit.transform(X)
 
     cobra = joblib.load(model_file)
 
-    survived = int(cobra.predict(feature_vector))
-    survived_proba = cobra.predict_proba(feature_vector)
+    # Genrating Predictions
+    prediction = cobra.predict(X)
+    predicted_status = pd.DataFrame(prediction, columns=["Predicted Status"])
+    return predicted_status
 
-    return [survived, survived_proba[0][survived]]
+
+def predict_helper(
+    employ,
+    age,
+    amount,
+    duration,
+    checkingstatus,
+    history,
+    purpose,
+    savings,
+    status,
+):
+    new_loan_application = pd.DataFrame(
+        data=[
+            [
+                employ,
+                age,
+                amount,
+                duration,
+                checkingstatus,
+                history,
+                purpose,
+                savings,
+                status,
+            ]
+        ],
+        columns=[
+            "employ",
+            "age",
+            "amount",
+            "duration",
+            "checkingstatus",
+            "history",
+            "purpose",
+            "savings",
+            "status",
+        ],
+    )
+    print(new_loan_application)
+    predictions = predict(loan_details=new_loan_application)
+    print(predictions)
+    return predictions.to_json()
 
 
-def convert(prediction_list):
-    prediction = {
-        'survived_bool': prediction_list[0], 'survived_proba': prediction_list[1]}
-    return prediction
+
+
+#How to use the predict function? --- code below.
+
+new_loan_application = pd.DataFrame(
+    data=[
+        # ["A73", 22, 5951, 48, "A12", "A32", "A43", "A61", "A92"],
+        ["A72", 40, 8951, 24, "A12", "A32", "A43", "A61", "A92"],
+    ],
+    columns=[
+        "employ",
+        "age",
+        "amount",
+        "duration",
+        "checkingstatus",
+        "history",
+        "purpose",
+        "savings",
+        "status",
+    ],
+)
+
+print(new_loan_application)
+print(predict(loan_details=new_loan_application))

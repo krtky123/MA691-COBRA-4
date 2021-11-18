@@ -1,8 +1,9 @@
 # Licensed under the MIT License - https://opensource.org/licenses/MIT
 
 from sklearn import neighbors, tree, svm
-from sklearn.linear_model import SGDClassifier, LogisticRegression, Perceptron
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.utils import shuffle
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
@@ -14,11 +15,11 @@ import random
 import logging
 import numbers
 
-logger = logging.getLogger('pycobra.classifiercobra')
+logger = logging.getLogger("pycobra.classifiercobra")
 
 
 class ClassifierCobra(BaseEstimator):
-    def __init__(self, random_state=None, machine_list='basic'):
+    def __init__(self, random_state=None, machine_list="basic"):
         self.random_state = random_state
         self.machine_list = machine_list
 
@@ -93,8 +94,7 @@ class ClassifierCobra(BaseEstimator):
         index = 0
         for vector in X:
             if info:
-                result[index], points = self.pred(
-                    vector.reshape(1, -1), M=M, info=info)
+                result[index], points = self.pred(vector.reshape(1, -1), M=M, info=info)
                 avg_points += len(points)
             else:
                 result[index] = self.pred(vector.reshape(1, -1), M=M)
@@ -117,8 +117,7 @@ class ClassifierCobra(BaseEstimator):
 
     def split_data(self, k=None, l=None, shuffle_data=True):
         if shuffle_data:
-            self.X_, self.y_ = shuffle(
-                self.X_, self.y_, random_state=self.random_state)
+            self.X_, self.y_ = shuffle(self.X_, self.y_, random_state=self.random_state)
 
         if k is None and l is None:
             k = int(len(self.X_) / 2)
@@ -136,45 +135,74 @@ class ClassifierCobra(BaseEstimator):
         self.y_l_ = self.y_[k:l]
         return self
 
-    def load_default(self, machine_list='basic'):
-        if machine_list == 'basic':
-            machine_list = ['gbk', 'svm', 'random_forest', 'tree']
-        if machine_list == 'advanced':
-            machine_list = ['gbk', 'svm', 'random_forest', 'tree', 'sgd',
-                            'logreg', 'perceptron', 'naive_bayes', 'linear_svc', 'knn']
+    """
+    The following machines are to be used based on the analysis done on 
+    Google Colab - (mapped to symbolic representation)
+    - logistic regression - logreg
+    - decision tree classifier - tree
+    - random forest classifier - random_forest
+    - adaboost - adb
+    - xgboost - xgb
+    - knn - knn
+    - svm - svm
+    - naive bayes - naive_bayes
+    """
+
+    def load_default(self, machine_list="basic"):
+        if machine_list == "basic":
+            machine_list = ["naive_bayes", "svm", "random_forest", "tree"]
+        if machine_list == "advanced":
+            machine_list = [
+                "xgb",
+                "svm",
+                "random_forest",
+                "tree",
+                "adb",
+                "logreg",
+                "naive_bayes",
+                "knn",
+            ]
 
         for machine in machine_list:
             try:
-                if machine == 'gbk':
-                    self.estimators_['gbk'] = GradientBoostingClassifier().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'svm':
-                    self.estimators_['svm'] = svm.SVC().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'random_forest':
-                    self.estimators_['random_forest'] = RandomForestClassifier().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'tree':
-                    self.estimators_['tree'] = tree.DecisionTreeClassifier().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'sgd':
-                    self.estimators_['sgd'] = SGDClassifier().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'logreg':
-                    self.estimators_['logreg'] = LogisticRegression(
-                        random_state=self.random_state).fit(self.X_k_, self.y_k_)
-                if machine == 'perceptron':
-                    self.estimators_['perceptron'] = Perceptron().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'naive_bayes':
-                    self.estimators_['naive_bayes'] = GaussianNB().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'linear_svc':
-                    self.estimators_['svm'] = svm.LinearSVC().fit(
-                        self.X_k_, self.y_k_)
-                if machine == 'knn':
-                    self.estimators_['knn'] = neighbors.KNeighborsClassifier().fit(
-                        self.X_k_, self.y_k_)
+                if machine == "xgb":
+                    self.estimators_["xgb"] = XGBClassifier(
+                        max_depth=10,
+                        learning_rate=0.01,
+                        n_estimators=200,
+                        objective="binary:logistic",
+                        booster="gbtree",
+                        eval_metric="logloss",
+                    ).fit(self.X_k_, self.y_k_)
+                if machine == "svm":
+                    self.estimators_["svm"] = svm.SVC(C=2, kernel="rbf", gamma=0.1).fit(
+                        self.X_k_, self.y_k_
+                    )
+                if machine == "random_forest":
+                    self.estimators_["random_forest"] = RandomForestClassifier(
+                        max_depth=10, n_estimators=100, criterion="gini"
+                    ).fit(self.X_k_, self.y_k_)
+                if machine == "tree":
+                    self.estimators_["tree"] = tree.DecisionTreeClassifier(
+                        max_depth=4, criterion="gini"
+                    ).fit(self.X_k_, self.y_k_)
+                if machine == "adb":
+                    DTC = tree.DecisionTreeClassifier(max_depth=4)
+                    self.estimators_["adb"] = AdaBoostClassifier(
+                        n_estimators=200, base_estimator=DTC, learning_rate=0.01
+                    ).fit(self.X_k_, self.y_k_)
+                if machine == "logreg":
+                    self.estimators_["logreg"] = LogisticRegression(
+                        C=1, penalty="l2", solver="newton-cg"
+                    ).fit(self.X_k_, self.y_k_)
+                if machine == "naive_bayes":
+                    self.estimators_["naive_bayes"] = GaussianNB().fit(
+                        self.X_k_, self.y_k_
+                    )
+                if machine == "knn":
+                    self.estimators_["knn"] = neighbors.KNeighborsClassifier(
+                        n_neighbors=3
+                    ).fit(self.X_k_, self.y_k_)
             except ValueError:
                 continue
         return self
@@ -187,8 +215,9 @@ class ClassifierCobra(BaseEstimator):
         self.machine_predictions_ = {}
         if predictions is None:
             for machine in self.estimators_:
-                self.machine_predictions_[machine] = self.estimators_[
-                    machine].predict(self.X_l_)
+                self.machine_predictions_[machine] = self.estimators_[machine].predict(
+                    self.X_l_
+                )
         return self
 
     def load_machine_proba_predictions(self, predictions=None):
@@ -197,8 +226,10 @@ class ClassifierCobra(BaseEstimator):
             for machine in self.estimators_:
                 try:
                     self.machine_proba_predictions_[machine] = self.estimators_[
-                        machine].predict_proba(self.X_l_)
+                        machine
+                    ].predict_proba(self.X_l_)
                 except AttributeError:
                     self.machine_proba_predictions_[machine] = self.estimators_[
-                        machine].decision_function(self.X_l_)
+                        machine
+                    ].decision_function(self.X_l_)
         return self
