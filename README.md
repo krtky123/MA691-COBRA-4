@@ -10,11 +10,11 @@ This project has been made by AB Satyraprakash, Kartikay Goel, Samiksha Sachdeva
 
 ## 📝 Project description
 
-This project uses the famous titanic dataset, and implements COBRA to make accurate prediction after combining different estimators. The dataset has been taken from the Kaggle competition: <br>[Titanic - Machine Learning from disaster](https://www.kaggle.com/c/titanic/data)
+This project uses the famous **German credit analysis** dataset, and implements COBRA to make accurate prediction after combining different estimators. The dataset has been taken from the UCI Machine Learning Repository: <br>[Statlog (German Credit Data) Data Set](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data))
 
 ## 🎯 Accuracy
 
-Using COBRA, an accuracy of **83.76%** has been obtained. For the complete implmentation on Google Colab see this [gist](https://gist.github.com/Imperial-lord/757b1d870f00253afed056d7324cb1d9).
+Using COBRA, an accuracy of **70.19%** has been obtained. For the complete implmentation on Google Colab see this [gist](hhttps://gist.github.com/Imperial-lord/7d91c0af8e471bace61a6ddc20e52972).
 
 ## 🌐 Presentation
 
