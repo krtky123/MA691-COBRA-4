@@ -10,15 +10,21 @@ This project has been made by AB Satyraprakash, Kartikay Goel, Samiksha Sachdeva
 
 ## 📝 Project description
 
-This project uses the famous **German credit analysis** dataset, and implements COBRA to make accurate prediction after combining different estimators. The dataset has been taken from the UCI Machine Learning Repository: <br>[Statlog (German Credit Data) Data Set](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data))
+This project uses 2 famous credit risk datasets namely -  **German credit analysis** dataset and **Australian credit analysis** dataset. It implements COBRA to make accurate prediction after combining different estimators. The datasets have been taken from the UCI Machine Learning Repository: <br>
+* [Statlog (German Credit Data) Data Set](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data))
+* [Statlog (Australian Credit Approval) Data Set](https://archive.ics.uci.edu/ml/datasets/statlog+(australian+credit+approval))
 
 ## 🎯 Accuracy
 
-Using COBRA, an accuracy of **70.19%** has been obtained. For the complete implmentation on Google Colab see this [gist](hhttps://gist.github.com/Imperial-lord/7d91c0af8e471bace61a6ddc20e52972).
+Using COBRA, an accuracy of 
+* **70.19%** has been obtained for German dataset and
+* **85.53%** has been obtained for Australian dataset
+
+For the complete implmentations on Google Colab see these notebooks - [Australian notebook](https://colab.research.google.com/drive/1LINYdH-g7mv-n0upWWbaLt0F-og5Y8y-?usp=sharing), [German notebook](https://colab.research.google.com/drive/1J6auH5XnrtWSmduiI2x71WhT_0BoUdyq?usp=sharing)
 
 ## 🌐 Presentation
 
-The project has been presented as a [website](https://survival-prediction-cobra4.herokuapp.com/). The backend (API with docs) has been hosted [here](https://pacific-dawn-32033.herokuapp.com/docs).
+The project has been presented as a [website](https://survival-prediction-cobra4.herokuapp.com/). The backend (API with docs) has been hosted [here](https://pacific-dawn-32033.herokuapp.com/docs). The australian dataset cannot be presented as a webapp because we do not have variable or value names due to data confidentiality issues.
 
 ## 🧰 Techstack
 
