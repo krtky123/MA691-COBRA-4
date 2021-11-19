@@ -20,7 +20,7 @@ $('#cobra-form').submit((e) => {
   // send a POST request
   axios({
     method: 'post',
-    url: 'https://pacific-dawn-32033.herokuapp.com/predict',
+    url: 'https://pacific-dawn-32033.herokuapp.com/predict_german',
     data: values,
   }).then(
     (response) => {
@@ -32,11 +32,11 @@ $('#cobra-form').submit((e) => {
 
       if (response_bool) {
         $('#result').addClass('alert-success');
-        $('#message').html(`The customer is a good customer. Granting him a loan would be a wise decision.`);
+        $('#message').html(`The customer is a good customer. Granting his application will be a wise decision.`);
       } else {
         $('#result').addClass('alert-danger');
         $('#message').html(
-          `The customer is a bad customer. Statistically speaking, it would be unwise to grant his load application.`
+          `The customer is a bad customer. Statistically speaking, it would be unwise to grant his application.`
         );
       }
     },
