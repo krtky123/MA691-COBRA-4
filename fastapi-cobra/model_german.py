@@ -24,7 +24,7 @@ warnings.filterwarnings("ignore")
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent
 
-german_credit_train_data = BASE_DIR.joinpath("data/train.csv")
+german_credit_train_data = BASE_DIR.joinpath("data/german.csv")
 
 
 def train():
@@ -55,10 +55,10 @@ def train():
     DataForML = df[SelectedColumns]
 
     # Saving this final data for reference during deployment
-    DataForML.to_pickle("mldata.pkl")
+    joblib.dump(DataForML, Path(BASE_DIR).joinpath(
+        "german_data_for_ml.joblib"))
 
     """# Data Pre-processing for Machine Learning
-
     ##### 1. Converting Ordinal variables to numeric using business mapping
     """
 
@@ -199,6 +199,11 @@ def train():
     ### Normalization of data ###
     PredictorScaler = MinMaxScaler()
     PredictorScalerFit = PredictorScaler.fit(X)
+
+    # Store predictor scaler fir for future use
+    joblib.dump(PredictorScalerFit, Path(BASE_DIR).joinpath(
+        "german_predictor_scaler_fit.joblib"))
+
     X = PredictorScalerFit.transform(X)
 
     # Retraining the model using 100% data
@@ -207,26 +212,31 @@ def train():
 
     # Training the model on 100% Data available
     cobra_model = cobra.fit(X, y)
-    accuracy_Values = cross_val_score(cobra_model, X, y, cv=10, scoring="f1_weighted")
+    accuracy_Values = cross_val_score(
+        cobra_model, X, y, cv=10, scoring="f1_weighted")
     print("\nAccuracy values for 10-fold Cross Validation:\n", accuracy_Values)
-    print("\nFinal Average Accuracy of the model:", round(accuracy_Values.mean(), 4))
+    print("\nFinal Average Accuracy of the model:",
+          round(accuracy_Values.mean(), 4))
 
     # Dumping the trained model for future use
-    joblib.dump(cobra, Path(BASE_DIR).joinpath("cobra.joblib"))
+    joblib.dump(cobra, Path(BASE_DIR).joinpath("german_cobra.joblib"))
 
 
-def predict(loan_details):
-    model_file = Path(BASE_DIR).joinpath("cobra.joblib")
+def predict_german(loan_details):
+    model_file = Path(BASE_DIR).joinpath("german_cobra.joblib")
+    data_for_ml_file = Path(BASE_DIR).joinpath("german_data_for_ml.joblib")
+    predictor_scaler_fit_file = Path(BASE_DIR).joinpath(
+        "german_predictor_scaler_fit.joblib")
 
     # the model has not been trained.
     if not model_file.exists():
         train()
-        model_file = Path(BASE_DIR).joinpath("cobra.joblib")
+        model_file = Path(BASE_DIR).joinpath("german_cobra.joblib")
 
     num_inputs = loan_details.shape[0]
 
     # Appending the new data with the Training data
-    DataForML = pd.read_pickle("mldata.pkl")
+    DataForML = joblib.load(data_for_ml_file)
     loan_details = loan_details.append(DataForML)
 
     # Treating the Ordinal variable first
@@ -277,8 +287,7 @@ def predict(loan_details):
     X = loan_details[Predictors].values[0:num_inputs]
 
     # Generating the standardized values of X since it was done while model training also
-    PredictorScaler = MinMaxScaler()
-    PredictorScalerFit = PredictorScaler.fit(X)
+    PredictorScalerFit = joblib.load(predictor_scaler_fit_file)
     X = PredictorScalerFit.transform(X)
 
     cobra = joblib.load(model_file)
@@ -289,7 +298,7 @@ def predict(loan_details):
     return predicted_status
 
 
-def predict_helper(
+def predict_helper_german(
     employ,
     age,
     amount,
@@ -326,20 +335,17 @@ def predict_helper(
             "status",
         ],
     )
-    print(new_loan_application)
-    predictions = predict(loan_details=new_loan_application)
-    print(predictions)
+
+    predictions = predict_german(loan_details=new_loan_application)
     return predictions.to_json()
 
 
-
-
-#How to use the predict function? --- code below.
-
+'''
+# How to use the predict function? --- code below.
 new_loan_application = pd.DataFrame(
     data=[
-        # ["A73", 22, 5951, 48, "A12", "A32", "A43", "A61", "A92"],
         ["A72", 40, 8951, 24, "A12", "A32", "A43", "A61", "A92"],
+        ["A73", 53, 4870, 24, "A11", "A33", "A40", "A61", "A93"],
     ],
     columns=[
         "employ",
@@ -355,4 +361,17 @@ new_loan_application = pd.DataFrame(
 )
 
 print(new_loan_application)
-print(predict(loan_details=new_loan_application))
+print(predict_german(loan_details=new_loan_application))
+'''
+
+'''
+# How to use the predict_helper function? --- code below.
+
+# get output of 1.0 - credit card application approved
+print(predict_helper_german("A73", 53, 4870,
+      24, "A11", "A33", "A40", "A61", "A93"))
+
+# get output of 0.0 - credit card application rejected
+print(predict_helper_german("A72", 40, 8951,
+      24, "A12", "A32", "A43", "A61", "A92"))
+'''

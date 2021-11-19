@@ -2,8 +2,8 @@
 
 from sklearn import neighbors, tree, svm
 from sklearn.linear_model import SGDClassifier, LogisticRegression
-from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
-from xgboost import XGBClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.utils import shuffle
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
@@ -94,7 +94,8 @@ class ClassifierCobra(BaseEstimator):
         index = 0
         for vector in X:
             if info:
-                result[index], points = self.pred(vector.reshape(1, -1), M=M, info=info)
+                result[index], points = self.pred(
+                    vector.reshape(1, -1), M=M, info=info)
                 avg_points += len(points)
             else:
                 result[index] = self.pred(vector.reshape(1, -1), M=M)
@@ -117,7 +118,8 @@ class ClassifierCobra(BaseEstimator):
 
     def split_data(self, k=None, l=None, shuffle_data=True):
         if shuffle_data:
-            self.X_, self.y_ = shuffle(self.X_, self.y_, random_state=self.random_state)
+            self.X_, self.y_ = shuffle(
+                self.X_, self.y_, random_state=self.random_state)
 
         if k is None and l is None:
             k = int(len(self.X_) / 2)
@@ -138,26 +140,26 @@ class ClassifierCobra(BaseEstimator):
     """
     The following machines are to be used based on the analysis done on 
     Google Colab - (mapped to symbolic representation)
-    - logistic regression - logreg
-    - decision tree classifier - tree
-    - random forest classifier - random_forest
-    - adaboost - adb
-    - xgboost - xgb
-    - knn - knn
-    - svm - svm
-    - naive bayes - naive_bayes
+    - Decision Tree Classifier - tree
+    - K Nearest Neighbors - knn
+    - Naive Bayes - naive_bayes
+    - Support Vector Machines - svm
+    - Random Forest - random_forest
+    - Gradient Boosting - gdb
+    - Logistic Regression - logreg
+    - MLP Classifier - mlp
     """
 
     def load_default(self, machine_list="basic"):
         if machine_list == "basic":
-            machine_list = ["naive_bayes", "svm", "random_forest", "tree"]
+            machine_list = ["logreg", "svm", "knn", "mlp"]
         if machine_list == "advanced":
             machine_list = [
-                "xgb",
+                "gdb",
                 "svm",
                 "random_forest",
                 "tree",
-                "adb",
+                "mlp",
                 "logreg",
                 "naive_bayes",
                 "knn",
@@ -165,44 +167,38 @@ class ClassifierCobra(BaseEstimator):
 
         for machine in machine_list:
             try:
-                if machine == "xgb":
-                    self.estimators_["xgb"] = XGBClassifier(
-                        max_depth=10,
-                        learning_rate=0.01,
-                        n_estimators=200,
-                        objective="binary:logistic",
-                        booster="gbtree",
-                        eval_metric="logloss",
-                    ).fit(self.X_k_, self.y_k_)
+                if machine == "gdb":
+                    self.estimators_["gdb"] = GradientBoostingClassifier(
+                        learning_rate=0.05, max_depth=2, n_estimators=50, min_samples_leaf=30, max_features='auto').fit(self.X_k_, self.y_k_)
+
                 if machine == "svm":
-                    self.estimators_["svm"] = svm.SVC(C=2, kernel="rbf", gamma=0.1).fit(
-                        self.X_k_, self.y_k_
-                    )
+                    self.estimators_["svm"] = svm.SVC(
+                        C=0.01, kernel='linear').fit(self.X_k_, self.y_k_)
+
                 if machine == "random_forest":
                     self.estimators_["random_forest"] = RandomForestClassifier(
-                        max_depth=10, n_estimators=100, criterion="gini"
-                    ).fit(self.X_k_, self.y_k_)
+                        max_depth=2, n_estimators=10, min_samples_leaf=10, max_features='auto').fit(self.X_k_, self.y_k_)
+
                 if machine == "tree":
                     self.estimators_["tree"] = tree.DecisionTreeClassifier(
-                        max_depth=4, criterion="gini"
-                    ).fit(self.X_k_, self.y_k_)
-                if machine == "adb":
-                    DTC = tree.DecisionTreeClassifier(max_depth=4)
-                    self.estimators_["adb"] = AdaBoostClassifier(
-                        n_estimators=200, base_estimator=DTC, learning_rate=0.01
-                    ).fit(self.X_k_, self.y_k_)
+                        class_weight='balanced', max_depth=None, max_leaf_nodes=None, min_samples_leaf=21, min_samples_split=2).fit(self.X_k_, self.y_k_)
+
+                if machine == "mlp":
+                    self.estimators_["mlp"] = MLPClassifier(
+                        max_iter=1000, learning_rate='constant', activation='tanh', learning_rate_init=0.1, alpha=0.1).fit(self.X_k_, self.y_k_)
+
                 if machine == "logreg":
                     self.estimators_["logreg"] = LogisticRegression(
-                        C=1, penalty="l2", solver="newton-cg"
-                    ).fit(self.X_k_, self.y_k_)
+                        penalty='l2', class_weight='balanced', C=0.5).fit(self.X_k_, self.y_k_)
+
                 if machine == "naive_bayes":
                     self.estimators_["naive_bayes"] = GaussianNB().fit(
-                        self.X_k_, self.y_k_
-                    )
+                        self.X_k_, self.y_k_)
+
                 if machine == "knn":
                     self.estimators_["knn"] = neighbors.KNeighborsClassifier(
-                        n_neighbors=3
-                    ).fit(self.X_k_, self.y_k_)
+                        n_neighbors=20, weights='uniform').fit(self.X_k_, self.y_k_)
+
             except ValueError:
                 continue
         return self
