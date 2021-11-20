@@ -1,5 +1,9 @@
 ![MA691-COBRA-4](https://user-images.githubusercontent.com/45942031/140724100-ba8da381-431a-47fa-9026-ff82cafb9719.png)
 
+## ⚠️ Disclaimer
+
+This work is for learning purpose only. The work can not be used for publication or as commercial products etc without mentor’s consent.
+
 ## 🐍 What is COBRA?
 
 COBRA stands for COmBined Regression Alternative. It is a new method for combining several initial estimators of the regression function. Instead of building a linear or convex optimized combination over a collection of basic estimators r1, . . . , rM, we use them as a collective indicator of the proximity between the training data and a test observation. This local distance approach is model-free and very fast. More specifically, the resulting nonparametric/nonlinear combined estimator is shown to perform asymptotically at least as well in the L2 sense as the best combination of the basic estimators in the collective.
@@ -30,7 +34,3 @@ The project has been presented as a [website](https://survival-prediction-cobra4
 
 The following techstack has been used for the project implementation and presentation.
 ![Untitled design](https://user-images.githubusercontent.com/45942031/140725411-e0d855f5-a0bb-40c9-8a7c-21e6f8f13e4c.png)
-
-## ⚠️ Disclaimer
-
-This work is for learning purpose only. The work can not be used for publication or as commercial products etc without mentor’s consent.
